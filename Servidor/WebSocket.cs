@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Fleck;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Servidor
 {
@@ -154,27 +155,61 @@ namespace Servidor
         }
 
         // Método para procesar un INSERT (ejemplo de operación)
-        private string ProcesarInsert(Dictionary<string, object> clienteMsg)
+        /*private string ProcesarInsert(Dictionary<string, object> clienteMsg)
         {
             try
             {
                 // Extraemos los datos que el cliente envía para insertar
                 var tabla = clienteMsg["tabla"].ToString();
                 var valores = clienteMsg["valores"].ToString(); // Aquí debes tener la lógica para obtener los valores
-
-                string query = $"INSERT INTO {tabla} VALUES ({valores})";
+                string query = $"INSERT INTO {tabla} VALUES ({valores})"; //donde puse Instrumentos va {tabla}
                 bool exito = datos.command(query); // Ejecutamos la consulta de inserción
 
                 return exito ? CrearRespuesta("ok", "Registro insertado correctamente.") : CrearRespuesta("error", "Error al insertar registro.");
             }
             catch (Exception ex)
             {
+                return CrearRespuesta("Error", "Error en la operación INSERT: " + ex.Message);
+            }
+        }*/
+        //Método para procesar el insert que el cliente envía
+        private string ProcesarInsert(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                if (!clienteMsg.ContainsKey("tabla") || !clienteMsg.ContainsKey("valores"))
+                    return CrearRespuesta("error", "Faltan campos obligatorios: 'tabla' o 'valores'");
+
+                string tabla = clienteMsg["tabla"].ToString();
+
+                // Convertimos 'valores' a JObject de manera segura
+                var jObject = clienteMsg["valores"] as JObject;
+                if (jObject == null)
+                    return CrearRespuesta("error", "'valores' no es un objeto válido");
+
+                // Construimos columnas y valores
+                string columnas = string.Join(", ", jObject.Properties().Select(p => p.Name));
+                string valoresSQL = string.Join(", ", jObject.Properties().Select(p => $"'{p.Value.ToString().Replace("'", "''")}'"));
+
+                string query = $"INSERT INTO {tabla} ({columnas}) VALUES ({valoresSQL})";
+
+                Console.WriteLine("Consulta generada: " + query);
+
+                bool exito = this.datos.command(query); // Asegúrate de que 'datos' es tu objeto de conexión
+
+                return exito ? CrearRespuesta("ok", "Registro insertado correctamente.")
+                             : CrearRespuesta("error", "Error al insertar registro.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error al insertar: " + ex.Message);
                 return CrearRespuesta("error", "Error en la operación INSERT: " + ex.Message);
             }
         }
 
-        // Método para procesar un UPDATE (ejemplo de operación)
-        private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
+
+        // Método para procesar un UPDATE 
+        /*private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
         {
             try
             {
@@ -192,10 +227,52 @@ namespace Servidor
             {
                 return CrearRespuesta("error", "Error en la operación UPDATE: " + ex.Message);
             }
+        }*/
+        private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Validar que los campos necesarios existen
+                if (!clienteMsg.ContainsKey("tabla") ||
+                    !clienteMsg.ContainsKey("condiciones") ||
+                    !clienteMsg.ContainsKey("valores"))
+                {
+                    return CrearRespuesta("error", "Faltan campos obligatorios: 'tabla', 'condiciones' o 'valores'");
+                }
+
+                string tabla = clienteMsg["tabla"].ToString();
+                string condiciones = clienteMsg["condiciones"].ToString();
+
+                // Convertir 'nuevosValores' a JObject para poder recorrer sus propiedades
+                var valores = clienteMsg["valores"] as JObject;
+                if (valores == null)
+                    return CrearRespuesta("error", "'nuevosValores' no es un objeto válido");
+
+                // Construir el conjunto de asignaciones tipo columna = 'valor'
+                string asignaciones = string.Join(", ", valores.Properties().Select(p =>
+                    $"{p.Name} = '{p.Value.ToString().Replace("'", "''")}'"));
+
+                // Construir consulta SQL
+                string query = $"UPDATE {tabla} SET {asignaciones} WHERE {condiciones}";
+
+                Console.WriteLine("Consulta UPDATE generada: " + query);
+
+                bool exito = datos.command(query);
+
+                return exito
+                    ? CrearRespuesta("ok", "Registro actualizado correctamente.")
+                    : CrearRespuesta("error", "Error al actualizar registro.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error en UPDATE: " + ex.Message);
+                return CrearRespuesta("error", "Error en la operación UPDATE: " + ex.Message);
+            }
         }
 
-        // Método para procesar un DELETE (ejemplo de operación)
-        private string ProcesarDelete(Dictionary<string, object> clienteMsg)
+
+        // Método para procesar un DELETE 
+        /*private string ProcesarDelete(Dictionary<string, object> clienteMsg)
         {
             try
             {
@@ -212,7 +289,38 @@ namespace Servidor
             {
                 return CrearRespuesta("error", "Error en la operación DELETE: " + ex.Message);
             }
+        }*/
+        private string ProcesarDelete(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Validar que los campos necesarios existen
+                if (!clienteMsg.ContainsKey("tabla") || !clienteMsg.ContainsKey("condiciones"))
+                {
+                    return CrearRespuesta("error", "Faltan campos obligatorios: 'tabla' o 'condiciones'");
+                }
+
+                string tabla = clienteMsg["tabla"].ToString();
+                string condiciones = clienteMsg["condiciones"].ToString();
+
+                // Construir consulta DELETE
+                string query = $"DELETE FROM {tabla} WHERE {condiciones}";
+
+                Console.WriteLine("Consulta DELETE generada: " + query);
+
+                bool exito = datos.command(query);
+
+                return exito
+                    ? CrearRespuesta("ok", "Registro eliminado correctamente.")
+                    : CrearRespuesta("error", "Error al eliminar registro.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error en DELETE: " + ex.Message);
+                return CrearRespuesta("error", "Error en la operación DELETE: " + ex.Message);
+            }
         }
+
 
         private string ProcesarLogin(Dictionary<string, object> clienteMsg)
         {
@@ -247,7 +355,7 @@ namespace Servidor
         }
 
 
-        // Método para crear respuestas en formato JSON (exito/error)
+        // Método para crear respuestas en formato JSON (exito/error), esto con el propósito de avisar de los cambios
         private string CrearRespuesta(string estado, object resultado = null)
         {
             var objeto = new
