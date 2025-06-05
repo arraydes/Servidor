@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Fleck;
+using Newtonsoft.Json;
 
 namespace Servidor
 {
@@ -18,7 +19,7 @@ namespace Servidor
             try
             {
                 //Se abre el archivo de configuración para obtener la ip
-                Configuracion config = new Configuracion("config.txt");
+                Configuracion config = new Configuracion("C:\\Users\\Joés\\source\\repos\\Servidor\\Servidor\\config.txt");
 
                 string ip = config.Get("websocket_ip");
                 string puerto = config.Get("websocket_puerto");
@@ -55,28 +56,51 @@ namespace Servidor
                     {
                         Console.WriteLine("Mensaje recibido: " + mensaje);
 
-                        var resultado = datos.query(mensaje);
+                        // Deserializamos el mensaje recibido en un objeto JSON
+                        var clienteMsg = JsonConvert.DeserializeObject<Dictionary<string, object>>(mensaje);
 
-                        if (resultado != null)
+                        string respuesta = "";
+
+                        // Verificamos si el mensaje contiene el campo "evento"
+                        if (clienteMsg.ContainsKey("evento"))
                         {
-                            var tabla = resultado.Tables[0];
-                            string respuesta = "";
+                            string evento = clienteMsg["evento"].ToString();
 
-                            foreach (DataRow fila in tabla.Rows)
+                            switch (evento)
                             {
-                                foreach (var item in fila.ItemArray)
-                                {
-                                    respuesta += item.ToString() + "\t";
-                                }
-                                respuesta += "\n";
-                            }
+                                case "GET_INSTRUMENTOS":
+                                    // Procesamos la solicitud de obtener los instrumentos
+                                    respuesta = ProcesarInstrumentos();
+                                    break;
 
-                            socket.Send(respuesta);
+                                case "INSERT":
+                                    // Procesamos la operación INSERT
+                                    respuesta = ProcesarInsert(clienteMsg);
+                                    break;
+
+                                case "UPDATE":
+                                    // Procesamos la operación UPDATE
+                                    respuesta = ProcesarUpdate(clienteMsg);
+                                    break;
+
+                                case "DELETE":
+                                    // Procesamos la operación DELETE
+                                    respuesta = ProcesarDelete(clienteMsg);
+                                    break;
+
+                                default:
+                                    // Si el evento no está en los permitidos, respondemos con un error
+                                    respuesta = CrearRespuesta("error", "Operación no válida.");
+                                    break;
+                            }
                         }
                         else
                         {
-                            socket.Send("Error al ejecutar la consulta.");
+                            respuesta = CrearRespuesta("error", "Falta el campo 'evento'.");
                         }
+
+                        // Enviamos la respuesta al cliente
+                        socket.Send(respuesta);
                     };
                 });
             }
@@ -84,6 +108,118 @@ namespace Servidor
             {
                 Console.WriteLine("Error al iniciar el servidor: " + ex.Message);
             }
+        }
+
+        
+        private string ProcesarInstrumentos()
+        {
+            try
+            {
+                // Consulta SQL para obtener los instrumentos desde la base de datos
+                string query = "SELECT * FROM Instrumentos";  
+
+                // Ejecutamos la consulta
+                DataSet ds = datos.query(query);
+
+                if (ds != null && ds.Tables.Count > 0)
+                {
+                    // Convertimos la tabla a JSON usando Newtonsoft.Json
+                    string json = Utilidades.ConvertirDataTableAJson(ds.Tables[0]);
+
+                    // Creamos el objeto con el evento "DATOS" y el contenido con la tabla en JSON
+                    var respuesta = new
+                    {
+                        evento = "DATOS",
+                        contenido = json
+                    };
+
+                    // Convertimos el objeto a JSON
+                    return JsonConvert.SerializeObject(respuesta);
+                }
+                else
+                {
+                    // Si no hay datos, devolvemos un error
+                    return CrearRespuesta("error", "No se encontraron instrumentos.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // En caso de error en la consulta, enviamos el mensaje de error
+                return CrearRespuesta("error", "Error al obtener los instrumentos: " + ex.Message);
+            }
+        }
+
+        // Método para procesar un INSERT (ejemplo de operación)
+        private string ProcesarInsert(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Extraemos los datos que el cliente envía para insertar
+                var tabla = clienteMsg["tabla"].ToString();
+                var valores = clienteMsg["valores"].ToString(); // Aquí debes tener la lógica para obtener los valores
+
+                string query = $"INSERT INTO {tabla} VALUES ({valores})";
+                bool exito = datos.command(query); // Ejecutamos la consulta de inserción
+
+                return exito ? CrearRespuesta("ok", "Registro insertado correctamente.") : CrearRespuesta("error", "Error al insertar registro.");
+            }
+            catch (Exception ex)
+            {
+                return CrearRespuesta("error", "Error en la operación INSERT: " + ex.Message);
+            }
+        }
+
+        // Método para procesar un UPDATE (ejemplo de operación)
+        private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Lógica para procesar un UPDATE, extraer la tabla y los valores desde clienteMsg
+                var tabla = clienteMsg["tabla"].ToString();
+                var condiciones = clienteMsg["condiciones"].ToString();
+                var nuevosValores = clienteMsg["nuevosValores"].ToString();
+
+                string query = $"UPDATE {tabla} SET {nuevosValores} WHERE {condiciones}";
+                bool exito = datos.command(query); // Ejecutamos la consulta de actualización
+
+                return exito ? CrearRespuesta("ok", "Registro actualizado correctamente.") : CrearRespuesta("error", "Error al actualizar registro.");
+            }
+            catch (Exception ex)
+            {
+                return CrearRespuesta("error", "Error en la operación UPDATE: " + ex.Message);
+            }
+        }
+
+        // Método para procesar un DELETE (ejemplo de operación)
+        private string ProcesarDelete(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Lógica para procesar un DELETE, extraer la tabla y las condiciones desde clienteMsg
+                var tabla = clienteMsg["tabla"].ToString();
+                var condiciones = clienteMsg["condiciones"].ToString();
+
+                string query = $"DELETE FROM {tabla} WHERE {condiciones}";
+                bool exito = datos.command(query); // Ejecutamos la consulta de eliminación
+
+                return exito ? CrearRespuesta("ok", "Registro eliminado correctamente.") : CrearRespuesta("error", "Error al eliminar registro.");
+            }
+            catch (Exception ex)
+            {
+                return CrearRespuesta("error", "Error en la operación DELETE: " + ex.Message);
+            }
+        }
+
+        // Método para crear respuestas en formato JSON (exito/error)
+        private string CrearRespuesta(string estado, object resultado = null)
+        {
+            var objeto = new
+            {
+                estado = estado,
+                datos = resultado
+            };
+
+            return JsonConvert.SerializeObject(objeto);
         }
     }
 

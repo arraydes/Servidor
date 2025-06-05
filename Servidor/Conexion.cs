@@ -29,8 +29,8 @@ namespace Servidor
                 }
                 else
                 {
-                    string usuario = config.Get("sa");
-                    string contrasena = config.Get("lopasd.veg");
+                    string usuario = config.Get("usuario_sql");
+                    string contrasena = config.Get("contrasena_sql");
                     cadenaConexion = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contrasena};Encrypt=false";
                 }
             }
