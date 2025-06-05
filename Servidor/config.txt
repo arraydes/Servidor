@@ -1,0 +1,9 @@
+# Configuración de la base de datos
+Server_name=DESKTOP-FQBTGPU
+Database=AtaydeMusic
+autenticacion_integrada=true
+usuario_sql=sa
+contrasena_sql=lopasd.veg
+
+websocket_ip=10.13.70.35
+websocket_puerto=1433
