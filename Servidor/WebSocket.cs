@@ -73,17 +73,17 @@ namespace Servidor
                                     respuesta = ProcesarInstrumentos();
                                     break;
 
-                                case "INSERT":
+                                case "INSERTAR":
                                     // Procesamos la operación INSERT
                                     respuesta = ProcesarInsert(clienteMsg);
                                     break;
 
-                                case "UPDATE":
+                                case "ACTUALIZAR":
                                     // Procesamos la operación UPDATE
                                     respuesta = ProcesarUpdate(clienteMsg);
                                     break;
 
-                                case "DELETE":
+                                case "ELIMINAR":
                                     // Procesamos la operación DELETE
                                     respuesta = ProcesarDelete(clienteMsg);
                                     break;
