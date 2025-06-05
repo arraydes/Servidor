@@ -360,8 +360,8 @@ namespace Servidor
         {
             var objeto = new
             {
-                estado = estado,
-                datos = resultado
+                evento = "NOTIFICACION",
+                contenido = resultado
             };
 
             return JsonConvert.SerializeObject(objeto);
