@@ -6,7 +6,9 @@ try
 {
     ServidorWebSocket servidor = new ServidorWebSocket();
     servidor.Iniciar();
-    Console.WriteLine("Servidor iniciado :D");
+    
+    Console.WriteLine("Presiona ENTER para salir...");
+    Console.ReadLine();
 }
 catch (Exception ex)
 {

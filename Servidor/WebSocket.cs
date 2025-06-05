@@ -88,6 +88,10 @@ namespace Servidor
                                     respuesta = ProcesarDelete(clienteMsg);
                                     break;
 
+                                case "AUTENTICAR":
+                                    respuesta = ProcesarLogin(clienteMsg);
+                                    break;
+
                                 default:
                                     // Si el evento no está en los permitidos, respondemos con un error
                                     respuesta = CrearRespuesta("error", "Operación no válida.");
@@ -209,6 +213,39 @@ namespace Servidor
                 return CrearRespuesta("error", "Error en la operación DELETE: " + ex.Message);
             }
         }
+
+        private string ProcesarLogin(Dictionary<string, object> clienteMsg)
+        {
+            try
+            {
+                // Extraemos las credenciales del mensaje
+                string usuario = clienteMsg.ContainsKey("usuario") ? clienteMsg["usuario"].ToString() : null;
+                string contrasena = clienteMsg.ContainsKey("contrasena") ? clienteMsg["contrasena"].ToString() : null;
+
+                if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(contrasena))
+                    return CrearRespuesta("error", "Faltan credenciales.");
+
+                // Consulta SQL para verificar usuario y contraseña
+                string query = $"SELECT COUNT(*) FROM Usuarios WHERE Usuario = '{usuario}' AND Contrasena = '{contrasena}'";
+
+                var ds = datos.query(query);
+                if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+                {
+                    int count = Convert.ToInt32(ds.Tables[0].Rows[0][0]);
+                    if (count > 0)
+                        return CrearRespuesta("ok", "Autenticación exitosa.");
+                    else
+                        return CrearRespuesta("error", "Credenciales incorrectas.");
+                }
+
+                return CrearRespuesta("error", "Error al verificar credenciales.");
+            }
+            catch (Exception ex)
+            {
+                return CrearRespuesta("error", "Error en autenticación: " + ex.Message);
+            }
+        }
+
 
         // Método para crear respuestas en formato JSON (exito/error)
         private string CrearRespuesta(string estado, object resultado = null)
