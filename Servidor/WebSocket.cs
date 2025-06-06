@@ -154,24 +154,7 @@ namespace Servidor
             }
         }
 
-        // Método para procesar un INSERT (ejemplo de operación)
-        /*private string ProcesarInsert(Dictionary<string, object> clienteMsg)
-        {
-            try
-            {
-                // Extraemos los datos que el cliente envía para insertar
-                var tabla = clienteMsg["tabla"].ToString();
-                var valores = clienteMsg["valores"].ToString(); // Aquí debes tener la lógica para obtener los valores
-                string query = $"INSERT INTO {tabla} VALUES ({valores})"; //donde puse Instrumentos va {tabla}
-                bool exito = datos.command(query); // Ejecutamos la consulta de inserción
-
-                return exito ? CrearRespuesta("ok", "Registro insertado correctamente.") : CrearRespuesta("error", "Error al insertar registro.");
-            }
-            catch (Exception ex)
-            {
-                return CrearRespuesta("Error", "Error en la operación INSERT: " + ex.Message);
-            }
-        }*/
+    
         //Método para procesar el insert que el cliente envía
         private string ProcesarInsert(Dictionary<string, object> clienteMsg)
         {
@@ -209,25 +192,6 @@ namespace Servidor
 
 
         // Método para procesar un UPDATE 
-        /*private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
-        {
-            try
-            {
-                // Lógica para procesar un UPDATE, extraer la tabla y los valores desde clienteMsg
-                var tabla = clienteMsg["tabla"].ToString();
-                var condiciones = clienteMsg["condiciones"].ToString();
-                var nuevosValores = clienteMsg["nuevosValores"].ToString();
-
-                string query = $"UPDATE {tabla} SET {nuevosValores} WHERE {condiciones}";
-                bool exito = datos.command(query); // Ejecutamos la consulta de actualización
-
-                return exito ? CrearRespuesta("ok", "Registro actualizado correctamente.") : CrearRespuesta("error", "Error al actualizar registro.");
-            }
-            catch (Exception ex)
-            {
-                return CrearRespuesta("error", "Error en la operación UPDATE: " + ex.Message);
-            }
-        }*/
         private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
         {
             try
@@ -270,26 +234,6 @@ namespace Servidor
             }
         }
 
-
-        // Método para procesar un DELETE 
-        /*private string ProcesarDelete(Dictionary<string, object> clienteMsg)
-        {
-            try
-            {
-                // Lógica para procesar un DELETE, extraer la tabla y las condiciones desde clienteMsg
-                var tabla = clienteMsg["tabla"].ToString();
-                var condiciones = clienteMsg["condiciones"].ToString();
-
-                string query = $"DELETE FROM {tabla} WHERE {condiciones}";
-                bool exito = datos.command(query); // Ejecutamos la consulta de eliminación
-
-                return exito ? CrearRespuesta("ok", "Registro eliminado correctamente.") : CrearRespuesta("error", "Error al eliminar registro.");
-            }
-            catch (Exception ex)
-            {
-                return CrearRespuesta("error", "Error en la operación DELETE: " + ex.Message);
-            }
-        }*/
         private string ProcesarDelete(Dictionary<string, object> clienteMsg)
         {
             try
