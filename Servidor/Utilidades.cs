@@ -26,17 +26,5 @@ namespace Servidor
             }
         }
 
-        // Método para crear la respuesta con estado (ok/error)
-        public static string CrearRespuesta(string estado, object resultado = null)
-        {
-            var objeto = new
-            {
-                estado = estado,
-                datos = resultado
-            };
-
-            return JsonConvert.SerializeObject(objeto);
-        }
-
     }
 }

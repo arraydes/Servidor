@@ -76,7 +76,9 @@ namespace Servidor
 
                                 case "INSERTAR":
                                     // Procesamos la operación INSERT
-                                    respuesta = ProcesarInsert(clienteMsg);
+                                    //respuesta = ProcesarInsert(clienteMsg, socket, clientes);
+                                    //socket.Send(respuesta);
+                                    respuesta = ProcesarInsert(clienteMsg, socket);
                                     break;
 
                                 case "ACTUALIZAR":
@@ -154,9 +156,9 @@ namespace Servidor
             }
         }
 
-    
+
         //Método para procesar el insert que el cliente envía
-        private string ProcesarInsert(Dictionary<string, object> clienteMsg)
+        private string ProcesarInsert(Dictionary<string, object> clienteMsg, IWebSocketConnection origenCliente)
         {
             try
             {
@@ -176,12 +178,29 @@ namespace Servidor
 
                 string query = $"INSERT INTO {tabla} ({columnas}) VALUES ({valoresSQL})";
 
+                string tablaActualizada = ProcesarInstrumentos(); //La tabla se obtiene con el mismo método para procesar el evento GET_INSTRUMENTOS
+
                 Console.WriteLine("Consulta generada: " + query);
 
                 bool exito = this.datos.command(query); // Asegúrate de que 'datos' es tu objeto de conexión
 
-                return exito ? CrearRespuesta("ok", "Registro insertado correctamente.")
-                             : CrearRespuesta("error", "Error al insertar registro.");
+                if (exito)
+                {
+                    string respuesta = CrearRespuesta("ok", "Registro insertado correctamente.");
+                    foreach (var cliente in clientes)
+                    {
+                        if (cliente != origenCliente) // No reenviamos al cliente que insertó
+                        {
+                            cliente.Send(tablaActualizada);
+                        }
+                    }
+                    return respuesta;
+                }
+                else
+                {
+                    return CrearRespuesta("error", "Error al insertar registro.");
+                }
+                
             }
             catch (Exception ex)
             {
@@ -190,6 +209,56 @@ namespace Servidor
             }
         }
 
+        //private string ProcesarInsert(Dictionary<string, object> clienteMsg, IWebSocketConnection origenCliente, List<IWebSocketConnection> clientes)
+        //{
+        //    try
+        //    {
+        //        if (!clienteMsg.ContainsKey("tabla") || !clienteMsg.ContainsKey("valores"))
+        //            return CrearRespuesta("error", "Faltan campos obligatorios: 'tabla' o 'valores'");
+
+        //        string tabla = clienteMsg["tabla"].ToString();
+
+        //        var jObject = clienteMsg["valores"] as JObject;
+        //        if (jObject == null)
+        //            return CrearRespuesta("error", "'valores' no es un objeto válido");
+
+        //        string columnas = string.Join(", ", jObject.Properties().Select(p => p.Name));
+        //        string valoresSQL = string.Join(", ", jObject.Properties().Select(p => $"'{p.Value.ToString().Replace("'", "''")}'"));
+
+        //        string query = $"INSERT INTO {tabla} ({columnas}) VALUES ({valoresSQL})";
+
+        //        Console.WriteLine("Consulta generada: " + query);
+
+        //        bool exito = this.datos.command(query);
+
+        //        if (exito)
+        //        {
+        //            // Enviamos la tabla actualizada a todos los demás clientes
+        //            string tablaActualizada = ProcesarInstrumentos(); //La tabla se obtiene con el mismo método para procesar el evento GET_INSTRUMENTOS
+
+        //            foreach (var cliente in clientes)
+        //            {
+        //                if (cliente != origenCliente) // No reenviamos al cliente que insertó
+        //                {
+        //                    cliente.Send(tablaActualizada);
+        //                }
+        //            }
+
+        //            //return CrearRespuesta("ok", "Registro insertado correctamente.");
+        //            return "";
+        //        }
+        //        else
+        //        {
+        //            return null;
+        //            //return CrearRespuesta("error", "Error al insertar registro.");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine("Error al insertar: " + ex.Message);
+        //        return CrearRespuesta("error", "Error en la operación INSERT: " + ex.Message);
+        //    }
+        //}
 
         // Método para procesar un UPDATE 
         private string ProcesarUpdate(Dictionary<string, object> clienteMsg)
