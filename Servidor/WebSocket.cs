@@ -178,8 +178,6 @@ namespace Servidor
 
                 string query = $"INSERT INTO {tabla} ({columnas}) VALUES ({valoresSQL})";
 
-                string tablaActualizada = ProcesarInstrumentos(); //La tabla se obtiene con el mismo método para procesar el evento GET_INSTRUMENTOS
-
                 Console.WriteLine("Consulta generada: " + query);
 
                 bool exito = this.datos.command(query); // Asegúrate de que 'datos' es tu objeto de conexión
@@ -191,6 +189,7 @@ namespace Servidor
                     {
                         if (cliente != origenCliente) // No reenviamos al cliente que insertó
                         {
+                            string tablaActualizada = ProcesarInstrumentos(); //La tabla se obtiene con el mismo método para procesar el evento GET_INSTRUMENTOS
                             cliente.Send(tablaActualizada);
                         }
                     }
